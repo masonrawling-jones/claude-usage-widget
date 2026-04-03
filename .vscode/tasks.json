@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Launch Claude Usage Widget",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\pythonw.exe",
+      "args": [
+        "${workspaceFolder}\\widget.py"
+      ],
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated",
+        "close": true
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

@@ -40,6 +40,20 @@ python -m venv .venv
 
 Paste your cookie when prompted. It is saved to `config.txt` so you only need to do this once.
 
+### Optional: VS Code keyboard shortcut
+
+A VS Code task is included. To bind it to a key, add this to your `keybindings.json` (**Ctrl+Shift+P** → *Open Keyboard Shortcuts (JSON)*):
+
+```json
+{
+  "key": "ctrl+alt+w",
+  "command": "workbench.action.tasks.runTask",
+  "args": "Launch Claude Usage Widget"
+}
+```
+
+Or double-click `launch_widget.bat` to launch without VS Code.
+
 ## Cookie expiry
 
 The session cookie expires periodically (every few weeks). When the widget shows **"Session expired"**, repeat step 2 above, delete `config.txt`, and re-run.
