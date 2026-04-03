@@ -1,4 +1,5 @@
 config.txt
+debug.py
 .venv/
 __pycache__/
 *.pyc
