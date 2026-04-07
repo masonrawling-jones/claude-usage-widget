@@ -29,6 +29,8 @@ python -m venv .venv
 > ```powershell
 > $env:HTTPS_PROXY="http://<your-proxy-address>:<port>"; .venv\Scripts\pip.exe install curl-cffi
 > ```
+>
+> The widget itself auto-detects your Windows system proxy at runtime — no extra configuration needed.
 
 ### 2. Get your session cookie
 
