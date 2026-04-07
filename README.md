@@ -24,6 +24,12 @@ python -m venv .venv
 .venv\Scripts\pip.exe install curl-cffi
 ```
 
+> **Behind a corporate proxy?** Set `HTTPS_PROXY` before installing so pip can reach PyPI:
+>
+> ```powershell
+> $env:HTTPS_PROXY="http://<your-proxy-address>:<port>"; .venv\Scripts\pip.exe install curl-cffi
+> ```
+
 ### 2. Get your session cookie
 
 1. Open [claude.ai](https://claude.ai) in Chrome or Edge
