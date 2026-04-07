@@ -16,7 +16,29 @@ import time
 import json
 import os
 import sys
+import urllib.request
 from curl_cffi import requests
+
+
+def _system_proxies() -> dict:
+    """Return proxy dict for curl_cffi, reading Windows system proxy if set.
+
+    Windows often registers the proxy with an https:// scheme even for plain
+    HTTP proxies. curl_cffi would then attempt TLS to the proxy itself and
+    fail. We always rewrite the scheme to http://.
+    """
+    proxies = urllib.request.getproxies()
+    raw = proxies.get("https") or proxies.get("http") or ""
+    if not raw:
+        return {}
+    # Strip whatever scheme Windows gave us and force http://
+    if "://" in raw:
+        raw = raw.split("://", 1)[1]
+    url = "http://" + raw
+    return {"https": url, "http": url}
+
+
+PROXIES = _system_proxies()
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.txt")
 REFRESH_INTERVAL = 120  # seconds (2 minutes)
@@ -86,7 +108,7 @@ def fetch_usage(session_key: str) -> dict:
     }
 
     # 1. Bootstrap to get org UUID
-    r = requests.get("https://claude.ai/api/bootstrap", headers=headers, timeout=15, impersonate="chrome120")
+    r = requests.get("https://claude.ai/api/bootstrap", headers=headers, timeout=15, impersonate="chrome120", proxies=PROXIES)
     r.raise_for_status()
     bootstrap = r.json()
 
@@ -106,6 +128,7 @@ def fetch_usage(session_key: str) -> dict:
         headers=headers,
         timeout=15,
         impersonate="chrome120",
+        proxies=PROXIES,
     )
     r2.raise_for_status()
     data = r2.json()
