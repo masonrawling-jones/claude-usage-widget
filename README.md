@@ -64,7 +64,7 @@ Or double-click `launch_widget.bat` to launch without VS Code.
 
 ## Cookie expiry
 
-The session cookie expires periodically (every few weeks). When the widget shows **"Session expired"**, repeat step 2 above, delete `config.txt`, and re-run.
+The session cookie expires periodically (every few weeks). When the widget shows **"Session expired"**, click the **Update cookie** link that appears beneath it — this opens the same input dialog where you can paste a fresh cookie without restarting the widget.
 
 ## Security
 

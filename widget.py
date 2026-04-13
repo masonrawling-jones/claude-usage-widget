@@ -115,9 +115,15 @@ def fetch_usage(session_key: str) -> dict:
     org_id = None
     for account in bootstrap.get("account", {}).get("memberships", []):
         org = account.get("organization", {})
-        if org.get("uuid"):
+        if org.get("uuid") and org.get("rate_limit_tier") == "default_claude_ai":
             org_id = org["uuid"]
             break
+    if not org_id:
+        for account in bootstrap.get("account", {}).get("memberships", []):
+            org = account.get("organization", {})
+            if org.get("uuid"):
+                org_id = org["uuid"]
+                break
 
     if not org_id:
         raise ValueError("Could not find organisation UUID in bootstrap response")
@@ -286,6 +292,10 @@ class ClaudeUsageWidget:
         self.status_lbl = tk.Label(self.card, text="Last updated: —", font=FONT_SM, bg=BG, fg=FG_MUTED)
         self.status_lbl.pack(anchor="w")
 
+        # Auth refresh button — hidden until session expires
+        self._auth_btn = tk.Label(self.card, text="Update cookie", font=FONT_SM, bg=BG, fg=ACCENT, cursor="hand2")
+        self._auth_btn.bind("<Button-1>", lambda e: self._update_cookie())
+
         # Make draggable
         for w in (self.card, title_row):
             w.bind("<ButtonPress-1>", self._on_drag_start)
@@ -326,25 +336,62 @@ class ClaudeUsageWidget:
         try:
             data = fetch_usage(self.session_key)
             self.root.after(0, self._apply_data, data)
-        except requests.HTTPError as e:
-            if e.response is not None and e.response.status_code in (401, 403):
+        except Exception as e:
+            if hasattr(e, "response") and e.response is not None and e.response.status_code in (401, 403):
                 self.root.after(0, self._show_auth_error)
             else:
                 self.root.after(0, self._show_error, str(e))
-        except Exception as e:
-            self.root.after(0, self._show_error, str(e))
 
     def _apply_data(self, data: dict):
         self.session_bar.update(data["session_pct"], data["session_resets"])
         self.weekly_bar.update(data["weekly_pct"], data["weekly_resets"])
         now = time.strftime("%I:%M %p").lstrip("0")
         self.status_lbl.config(text=f"Last updated: {now}", fg=FG_MUTED)
+        self._auth_btn.pack_forget()
 
     def _show_error(self, msg: str):
         self.status_lbl.config(text=f"Error: {msg[:60]}", fg=RED)
+        self._auth_btn.pack_forget()
 
     def _show_auth_error(self):
-        self.status_lbl.config(text="Session expired — click ⟳ after refreshing cookie", fg=RED)
+        self.status_lbl.config(text="Session expired", fg=RED)
+        self._auth_btn.pack(anchor="w", pady=(2, 0))
+
+    def _update_cookie(self, error_msg=None):
+        instructions = (
+            "Paste the full Cookie header from your browser.\n\n"
+            "How to find it:\n"
+            "  1. Open claude.ai in Chrome/Edge\n"
+            "  2. Press F12 → Network tab → refresh the page\n"
+            "  3. Click any request to claude.ai\n"
+            "  4. In Headers, find 'Cookie:' and copy the FULL value"
+        )
+        prompt = f"{error_msg}\n\n{instructions}" if error_msg else instructions
+
+        self.root.attributes("-topmost", False)
+        key = simpledialog.askstring("Claude Usage Widget", prompt, show="*", parent=self.root)
+        self.root.attributes("-topmost", True)
+
+        if not key:
+            return
+
+        key = sanitize_cookie(key)
+        self._auth_btn.pack_forget()
+        self.status_lbl.config(text="Checking cookie…", fg=FG_MUTED)
+
+        def validate():
+            try:
+                data = fetch_usage(key)
+                save_session_key(key)
+                self.session_key = key
+                self.root.after(0, self._apply_data, data)
+            except Exception as e:
+                if hasattr(e, "response") and e.response is not None and e.response.status_code in (401, 403):
+                    self.root.after(0, self._update_cookie, "Cookie was not accepted.")
+                else:
+                    self.root.after(0, self._update_cookie, f"Error: {str(e)[:80]}")
+
+        threading.Thread(target=validate, daemon=True).start()
 
     def quit(self):
         self._running = False
